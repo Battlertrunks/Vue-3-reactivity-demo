@@ -56,37 +56,51 @@ function reactive(target) {
   return new Proxy(target, handler);
 }
 
+function ref(raw) {
+  const r = {
+    get value() {
+      track(r, 'value');
+      return raw;
+    },
+    set value(newVal) {
+      raw = newVal;
+      trigger(r, 'value');
+    }
+  }
+  return r;
+}
+
 function effect(eff) {
-  console.log('effect')
   activeEffect = eff;  // Set this as the activeEffect
   activeEffect();      // Run it
   activeEffect = null; // Unset it
 }
 
 let product = reactive({ price: 5, quantity: 2 });
-let salePrice = 0;
+let salePrice = ref(0);
 let total = 0;
 
 effect(() => {
-  total = product.price * product.quantity;
+  salePrice.value = product.price * 0.9;
 });
 
 effect(() => {
-  salePrice = product.price * 0.9;
+  total = salePrice.value * product.quantity;
 });
 
+
 console.log(
-  `Before updated total (should be 10) = ${total} salePrice (should be 4.5) = ${salePrice}`
+  `Before updated total (should be 10) = ${total} salePrice (should be 4.5) = ${salePrice.value}`
 ); // Should output '10' and '4.5'
 
 product.quantity = 3; // Will rerun the total effect function
 
 console.log(
-  `After updated total (should be 15) = ${total} salePrice (should be 4.5) = ${salePrice}`
-); // Should output '15' and '4.5'
+  `After updated total (should be 13.5) = ${total} salePrice (should be 4.5) = ${salePrice.value}`
+); // Should output '13.5' and '4.5'
 
 product.price = 10; // Would run both the effect functions above
 
 console.log(
-  `After updated total (should be 30) = ${total} salePrice (should be 9) = ${salePrice}`
+  `After updated total (should be 37) = ${total} salePrice (should be 9) = ${salePrice.value}`
 ); // Should be '30' and '9'
